@@ -1,20 +1,31 @@
 export const convertToSQL = (group) => {
-    // اگر گروه خالی بود
     if (!group.rules || group.rules.length === 0) return '';
 
-    // تبدیل تک‌تک آیتم‌ها (Rule یا Group)
-    const parts = group.rules.map(child => {
-        // اگر این یک Rule است (فیلد دارد)
+    const parts = group.rules.map((child, index) => {
+
+        let condition = '';
+
         if (child.field !== undefined) {
-            const val = typeof child.value === 'string' ? `'${child.value}'` : child.value;
-            return `${child.field} ${child.operator} ${val}`;
+            const val =
+                typeof child.value === 'string'
+                    ? `'${child.value}'`
+                    : child.value;
+
+            condition = `${child.field} ${child.operator} ${val}`;
+
+            // ✅ اعمال NOT
+            if (child.not) {
+                condition = `NOT (${condition})`;
+            }
+
+        } else {
+            condition = `(${convertToSQL(child)})`;
         }
-        // اگر این یک زیرگروه است (بازگشتی عمل کن)
-        else {
-            return `(${convertToSQL(child)})`;
-        }
+
+        if (index === 0) return condition;
+
+        return `${child.logic || 'AND'} ${condition}`;
     });
 
-    // چسباندن بخش‌ها با AND یا OR
-    return parts.join(` ${group.operator} `);
+    return parts.join(' ');
 };
